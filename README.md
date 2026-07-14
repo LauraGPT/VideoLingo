@@ -127,6 +127,8 @@ To enable the optional local FunASR/SenseVoice ASR backend after setup:
 .venv/bin/python installer.py --with-funasr       # macOS / Linux
 ```
 
+Installing the package does not select the backend. Restart VideoLingo, open **Subtitles Settings**, and select **FunASR (SenseVoice)** under **ASR Runtime**. Alternatively, set `whisper.runtime` to `funasr` in `config.yaml` before launch.
+
 ### Option B: Using Conda
 
 > ⚠️ **Not recommended.** This method will not be maintained going forward. Please use uv (Option A) above.
@@ -190,7 +192,9 @@ For detailed installation, API configuration, and batch mode instructions, pleas
 
 ## 📄 License
 
-This project is licensed under the Apache 2.0 License. Special thanks to the following open source projects for their contributions:
+This project's source code is licensed under the Apache 2.0 License. Special thanks to the following open source projects for their contributions:
+
+The optional FunASR backend downloads model weights separately. The default `iic/SenseVoiceSmall` weights are not covered by VideoLingo's Apache 2.0 license; review the [SenseVoiceSmall model card](https://huggingface.co/FunAudioLLM/SenseVoiceSmall) and [FunASR MODEL_LICENSE](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE) before downloading or using them.
 
 [whisperX](https://github.com/m-bain/whisperX), [yt-dlp](https://github.com/yt-dlp/yt-dlp), [json_repair](https://github.com/mangiucugna/json_repair), [BELLE](https://github.com/LianjiaTech/BELLE)
 

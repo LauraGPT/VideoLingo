@@ -12,7 +12,6 @@ from rich import print as rprint
 
 from core.utils.config_utils import load_key, update_key
 
-
 DEFAULT_MODEL = "iic/SenseVoiceSmall"
 SUPPORTED_LANGUAGES = frozenset({"zh", "en", "ja"})
 SUPPORTED_DEVICES = frozenset({"auto", "cpu", "cuda"})
@@ -25,6 +24,7 @@ _TOKEN_PATTERN = re.compile(
 )
 _NO_SPACE_BEFORE = frozenset(".,!?;:%)]}，。！？；：、…'’")
 _NO_SPACE_AFTER = frozenset("([{'‘“")
+_MAX_WORD_CHARS = 30
 
 _MODEL_CACHE: dict[tuple[str, str], Any] = {}
 _INFERENCE_LOCKS: dict[tuple[str, str], threading.Lock] = {}
@@ -112,6 +112,31 @@ def _timestamp_pair_ms(timestamp: Any) -> tuple[int, int] | None:
     return start_ms, end_ms
 
 
+def _split_overlong_words(words: list[dict]) -> list[dict]:
+    split_words = []
+    for word in words:
+        text = word["word"]
+        if len(text) <= _MAX_WORD_CHARS:
+            split_words.append(word)
+            continue
+
+        start = word["start"]
+        end = word["end"]
+        duration = end - start
+        for chunk_start in range(0, len(text), _MAX_WORD_CHARS):
+            chunk_end = min(chunk_start + _MAX_WORD_CHARS, len(text))
+            chunk = word.copy()
+            chunk["word"] = text[chunk_start:chunk_end]
+            chunk["start"] = start + duration * chunk_start / len(text)
+            chunk["end"] = (
+                end
+                if chunk_end == len(text)
+                else start + duration * chunk_end / len(text)
+            )
+            split_words.append(chunk)
+    return split_words
+
+
 def aligned_words(result: dict, offset_seconds: float) -> list[dict]:
     words = result.get("words") or []
     timestamps = result.get("timestamp") or result.get("timestamps") or []
@@ -131,7 +156,7 @@ def aligned_words(result: dict, offset_seconds: float) -> list[dict]:
                 "end": offset_seconds + pair[1] / 1000,
             }
         )
-    return aligned
+    return _split_overlong_words(aligned)
 
 
 def _timestamp_bounds_seconds(
@@ -170,7 +195,7 @@ def fallback_words(
         token_start = start + index * step
         token_end = end if index == len(tokens) - 1 else start + (index + 1) * step
         words.append({"word": token, "start": token_start, "end": token_end})
-    return words
+    return _split_overlong_words(words)
 
 
 def _is_cjk(char: str) -> bool:

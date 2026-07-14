@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from ruamel.yaml import YAML
 
+from core.asr_backend.audio_preprocess import process_transcription
 
 funasr_local = importlib.import_module("core.asr_backend.funasr_local")
 
@@ -27,6 +28,32 @@ class FunASRLocalTest(unittest.TestCase):
 
     def tearDown(self):
         funasr_local.clear_model_cache()
+
+    def assert_overlong_token_is_preserved(
+        self,
+        result,
+        offset_seconds,
+        clip_duration_seconds,
+        expected_times,
+    ):
+        token = result["text"]
+        segments = funasr_local._segments_from_results(
+            [result],
+            offset_seconds=offset_seconds,
+            clip_duration_seconds=clip_duration_seconds,
+        )
+
+        rows = process_transcription({"segments": segments}).to_dict("records")
+
+        expected_chunks = [
+            token[index : index + 30] for index in range(0, len(token), 30)
+        ]
+        self.assertEqual([row["text"] for row in rows], expected_chunks)
+        self.assertEqual("".join(row["text"] for row in rows), token)
+        self.assertTrue(all(len(row["text"]) <= 30 for row in rows))
+        for row, (expected_start, expected_end) in zip(rows, expected_times):
+            self.assertAlmostEqual(row["start"], expected_start)
+            self.assertAlmostEqual(row["end"], expected_end)
 
     def test_aligned_words_apply_clip_offset(self):
         result = {
@@ -65,6 +92,34 @@ class FunASRLocalTest(unittest.TestCase):
         self.assertEqual(words[0]["start"], 10.0)
         self.assertEqual(words[-1]["end"], 15.0)
         self.assertTrue(all(len(word["word"]) <= 30 for word in words))
+
+    def test_native_overlong_token_survives_process_transcription(self):
+        token = "n" * 61
+
+        self.assert_overlong_token_is_preserved(
+            {
+                "text": token,
+                "words": [token],
+                "timestamp": [[1000, 7100]],
+            },
+            offset_seconds=10.0,
+            clip_duration_seconds=8.0,
+            expected_times=[(11.0, 14.0), (14.0, 17.0), (17.0, 17.1)],
+        )
+
+    def test_fallback_overlong_token_survives_process_transcription(self):
+        token = "f" * 61
+
+        self.assert_overlong_token_is_preserved(
+            {"text": token},
+            offset_seconds=20.0,
+            clip_duration_seconds=6.1,
+            expected_times=[
+                (20.0, 23.0),
+                (23.0, 26.0),
+                (26.0, 26.1),
+            ],
+        )
 
     def test_transcribe_audio_returns_whisperx_contract(self):
         model = FakeModel(
