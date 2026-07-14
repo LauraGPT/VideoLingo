@@ -17,7 +17,7 @@ VideoLingo is an all-in-one video translation, localization, and dubbing tool ai
 Key features:
 - 🎥 YouTube video download via yt-dlp
 
-- **🎙️ Word-level and Low-illusion subtitle recognition with WhisperX**
+- **🎙️ Word-level subtitle recognition with WhisperX or optional FunASR/SenseVoice**
 
 - **📝 NLP and AI-powered subtitle segmentation**
 
@@ -120,6 +120,13 @@ python setup_env.py
 
 Or double-click `OneKeyStart.bat` on Windows.
 
+To enable the optional local FunASR/SenseVoice ASR backend after setup:
+
+```bash
+.venv\Scripts\python installer.py --with-funasr  # Windows
+.venv/bin/python installer.py --with-funasr       # macOS / Linux
+```
+
 ### Option B: Using Conda
 
 > ⚠️ **Not recommended.** This method will not be maintained going forward. Please use uv (Option A) above.
@@ -162,6 +169,7 @@ docker run -d -p 8501:8501 --gpus all videolingo
 VideoLingo supports OpenAI-Like API format and various TTS interfaces:
 - LLM: `claude-sonnet-4.6`, `gpt-5.4`, `gemini-3.1-pro`, `deepseek-v3`, `grok-4.1`, ... (sorted by quality; for budget options try `gemini-3-flash` or `gpt-5.4-mini`)
 - WhisperX: Run whisperX (large-v3) locally or use 302.ai API
+- FunASR: Run SenseVoice locally on CPU or CUDA with native word timestamps (optional install above)
 - TTS: `azure-tts`, `openai-tts`, `siliconflow-fishtts`, **`fish-tts`**, `GPT-SoVITS`, `edge-tts`, `*custom-tts`(You can modify your own TTS in custom_tts.py!)
 
 > **Note:** VideoLingo works with **[302.ai](https://gpt302.saaslink.net/C2oHR9)** - one API key for all services (LLM, WhisperX, TTS). Or run locally with Ollama and Edge-TTS for free, no API needed!
